@@ -3,12 +3,17 @@ package study.datajpa.repository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import study.datajpa.dto.MemberDto;
 import study.datajpa.entity.Member;
 import study.datajpa.entity.Team;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.util.Arrays;
 import java.util.List;
 
@@ -22,6 +27,9 @@ class MemberRepositoryTest {
 
     @Autowired MemberRepository memberRepository;
     @Autowired TeamRepository teamRepository;
+    @PersistenceContext
+    EntityManager em;
+
 
     @Test
     public void testMember(){
@@ -116,6 +124,49 @@ class MemberRepositoryTest {
         }
 
 
+    }
+
+    @Test
+    public void paging() {
+
+       memberRepository.save(new Member("member1" ,10));
+       memberRepository.save(new Member("member2" ,10));
+       memberRepository.save(new Member("member3" ,10));
+       memberRepository.save(new Member("member4" ,10));
+       memberRepository.save(new Member("member5" ,10));
+
+       int age =10;
+
+        PageRequest pageRequest = PageRequest.of(0, 3, Sort.by(Sort.Direction.DESC, "username"));
+
+        Page<Member> page = memberRepository.findByAge(age, pageRequest);
+        Page<MemberDto> tomap = page.map(m -> new MemberDto(m.getId(), m.getUsername(), null));
+
+
+        List<Member> content = page.getContent();
+        for (Member member : content) {
+            System.out.println("member = " + member);
+        }
+
+
+        assertThat(page.getSize()).isEqualTo(3);
+        assertThat(page.getTotalElements()).isEqualTo(5);
+        assertThat(page.getNumber()).isEqualTo(0); //현재 페이지 넘버
+        assertThat(page.getTotalPages()).isEqualTo(2);
+        assertThat(page.isFirst()).isTrue(); //현재가 첫페이지냐?
+        assertThat(page.hasNext()).isTrue(); //다음페이지 있냐?
+
+
+    }
+
+    @Test
+    public void entityGraph() {
+
+        memberRepository.save(new Member("member1", 10));
+        memberRepository.save(new Member("member1", 20));
+        memberRepository.save(new Member("member3", 10));
+
+        List<Member> mm = memberRepository.findEntityGraphByUsername("member1");
     }
 
 
